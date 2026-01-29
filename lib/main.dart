@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'calendar_view.dart';
 import 'notes_view.dart';
 import 'month_view.dart';
+import 'weekly_view.dart'; // Upewnij się, że ten plik istnieje w folderze lib
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() {
-  // To linijka, która "ładuje polski słownik" do pamięci
   initializeDateFormatting('pl_PL', null).then((_) {
     runApp(const VintageOrganizerApp());
   });
@@ -31,9 +31,9 @@ class MainOrganizerScreen extends StatefulWidget {
 
 class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
   bool _isOpened = false;
-  int _activeTabIndex = 0; // 0: Rok, 1: Miesiąc, 2: Tydzień, 3: Dzień, 4: Noty
+  int _activeTabIndex = 0; // 0: Rok, 1: Miesiąc, 2: Tydzień, 4: Notatki
   int _selectedMonth = 1;
-  // Kolory dla realizmu
+
   final Color _paperColor = const Color(0xFFF2E2C9);
   final Color _leatherColor = const Color(0xFF3E2723);
 
@@ -48,10 +48,11 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
   Widget _buildInterior() {
     return Row(
       children: [
-        // OBSZAR ROBOCZY (KARTKA) - teraz bez marginesów bocznych od strony zakładek!
+        // OBSZAR ROBOCZY (KARTKA)
         Expanded(
           child: Container(
-            margin: const EdgeInsets.only(left: 10, top: 10, bottom: 10),
+            // Zmieniamy margin z 10 na 0 lub zostawiamy tylko minimalny góra/dół
+            margin: const EdgeInsets.only(left: 0, top: 0, bottom: 0),
             decoration: BoxDecoration(
               color: _paperColor,
               borderRadius: const BorderRadius.only(
@@ -70,22 +71,30 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
           ),
         ),
 
-        // PASEK ZAKŁADEK - stykający się z kartką
+        // PASEK ZAKŁADEK
         Container(
-          width: 48,
-          margin: const EdgeInsets.only(top: 10, bottom: 10, right: 5),
+          width: 34,
+          margin: const EdgeInsets.only(
+            top: 0,
+            bottom: 0,
+            right: 0,
+          ), // Usuwamy boczny margines
           child: Column(
             children: [
               _buildPhysicalTab("ROK", 0),
+              // ... reszta bez zmian
               _buildPhysicalTab("MIES", 1),
               _buildPhysicalTab("TYDZ", 2),
               _buildPhysicalTab("DZIEŃ", 3),
               _buildPhysicalTab("NOTY", 4),
               const Spacer(),
-              // Przycisk zamknij
               IconButton(
                 onPressed: () => setState(() => _isOpened = false),
-                icon: const Icon(Icons.close, color: Colors.redAccent),
+                icon: const Icon(
+                  Icons.close,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -99,26 +108,15 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
     return GestureDetector(
       onTap: () => setState(() => _activeTabIndex = index),
       child: Container(
-        width: 48,
-        height: 80,
+        width: 34,
+        height: 75,
         margin: const EdgeInsets.only(bottom: 2),
         decoration: BoxDecoration(
-          color: isActive
-              ? _paperColor
-              : Colors.brown[800], // Aktywna ma kolor kartki!
+          color: isActive ? _paperColor : Colors.brown[800],
           borderRadius: const BorderRadius.only(
-            topRight: Radius.circular(10),
-            bottomRight: Radius.circular(10),
+            topRight: Radius.circular(8),
+            bottomRight: Radius.circular(8),
           ),
-          boxShadow: isActive
-              ? []
-              : [
-                  const BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 2,
-                    offset: Offset(2, 0),
-                  ),
-                ],
         ),
         child: RotatedBox(
           quarterTurns: 1,
@@ -128,7 +126,7 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
               style: TextStyle(
                 color: isActive ? Colors.brown[900] : Colors.white70,
                 fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-                fontSize: 11,
+                fontSize: 9,
                 letterSpacing: 1,
               ),
             ),
@@ -139,24 +137,30 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
   }
 
   Widget _buildMainContent() {
+    // Poprawiony switch - brak błędów z returnami i klamrami
     switch (_activeTabIndex) {
       case 0:
         return CalendarView(
           onMonthSelected: (monthNumber) {
             setState(() {
-              _selectedMonth = monthNumber; // Zapamiętaj kliknięty miesiąc
-              _activeTabIndex = 1; // Przełącz na widok miesiąca
+              _selectedMonth = monthNumber;
+              _activeTabIndex = 1;
             });
           },
         );
       case 1:
-        return MonthView(
-          initialMonth: _selectedMonth,
-        ); // WYWOŁANIE NOWEGO WIDOKU
+        return MonthView(initialMonth: _selectedMonth);
+      case 2:
+        return const WeeklyView(); // Twoja nowa rozkładówka tygodniowa
       case 4:
         return const NotesView();
       default:
-        return Center(child: Text("WIDOK: $_activeTabIndex"));
+        return Center(
+          child: Text(
+            "WIDOK: $_activeTabIndex",
+            style: const TextStyle(color: Colors.brown, fontSize: 16),
+          ),
+        );
     }
   }
 
