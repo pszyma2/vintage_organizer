@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'calendar_view.dart';
 import 'notes_view.dart';
 import 'month_view.dart';
-import 'weekly_view.dart'; // Upewnij się, że ten plik istnieje w folderze lib
+import 'weekly_view.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() {
@@ -31,8 +31,11 @@ class MainOrganizerScreen extends StatefulWidget {
 
 class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
   bool _isOpened = false;
-  int _activeTabIndex = 0; // 0: Rok, 1: Miesiąc, 2: Tydzień, 4: Notatki
+  int _activeTabIndex = 0;
+
+  // Te dwie zmienne trzymają informację, co wybraliśmy w widoku roku
   int _selectedMonth = 1;
+  int _selectedYear = 2026;
 
   final Color _paperColor = const Color(0xFFF2E2C9);
   final Color _leatherColor = const Color(0xFF3E2723);
@@ -48,41 +51,36 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
   Widget _buildInterior() {
     return Row(
       children: [
-        // OBSZAR ROBOCZY (KARTKA)
+        // Ta część (PAPIER) ma PageView w środku
         Expanded(
           child: Container(
-            // Zmieniamy margin z 10 na 0 lub zostawiamy tylko minimalny góra/dół
-            margin: const EdgeInsets.only(left: 0, top: 0, bottom: 0),
             decoration: BoxDecoration(
               color: _paperColor,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 bottomLeft: Radius.circular(12),
               ),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black87,
-                  blurRadius: 10,
-                  offset: Offset(-2, 0),
-                ),
-              ],
             ),
-            child: _buildMainContent(),
+            child: ClipRRect(
+              // To blokuje "wypływanie" kartki poza zaokrąglone rogi
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                bottomLeft: Radius.circular(12),
+              ),
+              child: _buildMainContent(),
+            ),
           ),
         ),
 
-        // PASEK ZAKŁADEK
+        // Ta część (ZAKŁADKI) jest NIERUCHOMA
         Container(
           width: 34,
-          margin: const EdgeInsets.only(
-            top: 0,
-            bottom: 0,
-            right: 0,
-          ), // Usuwamy boczny margines
+          color: const Color(
+            0xFF1A0F0B,
+          ), // Kolor tła, żeby nie było widać czarnych dziur
           child: Column(
             children: [
               _buildPhysicalTab("ROK", 0),
-              // ... reszta bez zmian
               _buildPhysicalTab("MIES", 1),
               _buildPhysicalTab("TYDZ", 2),
               _buildPhysicalTab("DZIEŃ", 3),
@@ -137,13 +135,14 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
   }
 
   Widget _buildMainContent() {
-    // Poprawiony switch - brak błędów z returnami i klamrami
     switch (_activeTabIndex) {
       case 0:
+        // Poprawione: teraz przyjmuje miesiąc I rok z CalendarView
         return CalendarView(
-          onMonthSelected: (monthNumber) {
+          onMonthSelected: (monthNumber, yearNumber) {
             setState(() {
               _selectedMonth = monthNumber;
+              _selectedYear = yearNumber;
               _activeTabIndex = 1;
             });
           },
@@ -151,7 +150,7 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
       case 1:
         return MonthView(initialMonth: _selectedMonth);
       case 2:
-        return const WeeklyView(); // Twoja nowa rozkładówka tygodniowa
+        return const WeeklyView();
       case 4:
         return const NotesView();
       default:
