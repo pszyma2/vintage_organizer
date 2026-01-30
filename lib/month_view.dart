@@ -1,143 +1,159 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class MonthView extends StatefulWidget {
-  final int initialMonth;
-
-  const MonthView({super.key, required this.initialMonth});
+  final Function(DateTime) onDaySelected;
+  const MonthView({super.key, required this.onDaySelected});
 
   @override
   State<MonthView> createState() => _MonthViewState();
 }
 
 class _MonthViewState extends State<MonthView> {
-  late PageController _pageController;
+  // Naprawione przewijanie: 1200 to styczeń 2026. Możesz cofać o 100 lat!
+  final int _initialPage = 1200;
+  late PageController _monthController;
 
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(initialPage: widget.initialMonth - 1);
+    _monthController = PageController(initialPage: _initialPage);
+  }
+
+  DateTime _getDateFromIndex(int index) {
+    return DateTime(2026, 1 + (index - _initialPage));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDFCF8),
-      body: PageView.builder(
-        controller: _pageController,
+    return Container(
+      color: const Color(0xFFF2E2C9), // Nasz papier Vintage
+      child: PageView.builder(
+        controller: _monthController,
+        // Tu docelowo wjedzie nasz "Page Turn", teraz jest płynne Clamping
+        physics: const ClampingScrollPhysics(parent: PageScrollPhysics()),
         itemBuilder: (context, index) {
-          DateTime displayDate = DateTime(2026, index + 1);
-          String monthName = DateFormat(
-            'LLLL yyyy',
-            'pl_PL',
-          ).format(displayDate).toUpperCase();
-
-          return Padding(
-            padding: const EdgeInsets.only(top: 24, left: 4, right: 4),
-            child: Column(
-              children: [
-                Text(
-                  monthName,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                    color: Color(0xFF5D4037),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12.0),
-                  child: Divider(color: Color(0xFF5D4037), thickness: 1.5),
-                ),
-                _buildDaysOfWeek(),
-
-                // Kalendarz - teraz całkowicie bez linii (czysty widok)
-                Expanded(flex: 2, child: _buildDaysGrid(displayDate)),
-
-                // SEKCJA NOTATNIKA - Linie od brzegu do brzegu
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 20, top: 10, bottom: 8),
-                        child: Text(
-                          "PRIORYTETY MIESIĄCA:",
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF5D4037),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildNotebookLines(
-                          14,
-                        ), // Jeszcze więcej linii na notatki
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
+          final monthDate = _getDateFromIndex(index);
+          return _buildMonthPage(monthDate);
         },
       ),
     );
   }
 
-  Widget _buildDaysOfWeek() {
-    List<String> days = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+  Widget _buildMonthPage(DateTime date) {
+    final monthNames = [
+      "STYCZEŃ",
+      "LUTY",
+      "MARZEC",
+      "KWIECIEŃ",
+      "MAJ",
+      "CZERWIEC",
+      "LIPIEC",
+      "SIERPIEŃ",
+      "WRZESIEŃ",
+      "PAŹDZIERNIK",
+      "LISTOPAD",
+      "GRUDZIEŃ",
+    ];
+
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        Text(
+          "${monthNames[date.month - 1]} ${date.year}",
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 4,
+            color: Color(0xFF5D4037),
+          ),
+        ),
+        const SizedBox(height: 15),
+        _buildWeekdayHeader(),
+        Expanded(child: _buildDaysGrid(date)),
+      ],
+    );
+  }
+
+  Widget _buildWeekdayHeader() {
+    const days = ["Pon", "Wt", "Śr", "Czw", "Pt", "Sob", "Nie"];
     return Row(
-      children: List.generate(7, (index) {
-        // Niedziela (index 6) na czerwono
-        Color dayColor = (index == 6)
-            ? Colors.red.shade700
-            : const Color(0xFF5D4037);
-        return Expanded(
-          child: Center(
-            child: Text(
-              days[index],
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: dayColor,
+      children: days
+          .map(
+            (d) => Expanded(
+              child: Center(
+                child: Text(
+                  d,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: d == "Nie"
+                        ? Colors.red.shade900
+                        : Colors.brown.shade700,
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      }),
+          )
+          .toList(),
     );
   }
 
   Widget _buildDaysGrid(DateTime date) {
-    int daysInMonth = DateTime(date.year, date.month + 1, 0).day;
-    int firstWeekday = DateTime(date.year, date.month, 1).weekday;
+    final firstDay = DateTime(date.year, date.month, 1);
+    final lastDay = DateTime(date.year, date.month + 1, 0);
+    final startingEmptySlots = firstDay.weekday - 1;
+    final totalSlots = startingEmptySlots + lastDay.day;
 
     return GridView.builder(
+      padding: const EdgeInsets.all(8),
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        childAspectRatio:
-            1.3, // Jeszcze bardziej płaskie, by zyskać miejsce na notatnik
+        childAspectRatio: 0.6, // Wyższe kratki na notatki
+        mainAxisSpacing: 2,
+        crossAxisSpacing: 2,
       ),
-      itemCount: daysInMonth + (firstWeekday - 1),
+      itemCount: totalSlots,
       itemBuilder: (context, index) {
-        if (index < firstWeekday - 1) return const SizedBox();
-        int dayNumber = index - (firstWeekday - 2);
+        if (index < startingEmptySlots) {
+          return Container(); // Puste pole przed początkiem miesiąca
+        }
 
-        // Obliczamy czy to niedziela (niedziela w tej siatce to zawsze index będący wielokrotnością 7 minus 1)
-        bool isSunday = (index + 1) % 7 == 0;
+        final day = index - startingEmptySlots + 1;
+        final currentDayDate = DateTime(date.year, date.month, day);
+        bool isSunday = currentDayDate.weekday == 7;
 
-        return Container(
-          alignment: Alignment.center,
-          child: Text(
-            "$dayNumber",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: isSunday ? Colors.red.shade700 : Colors.black87,
+        return GestureDetector(
+          onTap: () => widget.onDaySelected(currentDayDate),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.3),
+              border: Border.all(
+                color: Colors.brown.withOpacity(0.2),
+                width: 0.5,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Text(
+                    "$day",
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: isSunday ? Colors.red.shade900 : Colors.black87,
+                    ),
+                  ),
+                ),
+                // PRZYKŁADOWE PASKI ZADAŃ (Tak jak w Google Calendar)
+                if (day == 10)
+                  _buildTaskBar("Lekarz 14:00", Colors.blue.shade100),
+                if (day == 15)
+                  _buildTaskBar("Praca 08:00", Colors.green.shade100),
+                if (day == 15) _buildTaskBar("Zakupy", Colors.orange.shade100),
+              ],
             ),
           ),
         );
@@ -145,17 +161,20 @@ class _MonthViewState extends State<MonthView> {
     );
   }
 
-  Widget _buildNotebookLines(int count) {
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: count,
-      separatorBuilder: (context, index) => Divider(
-        color: const Color(0xFF5D4037).withAlpha(40),
-        height: 1,
-        thickness: 0.8,
+  Widget _buildTaskBar(String text, Color color) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 1, left: 1, right: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(2),
       ),
-      itemBuilder: (context, index) => const SizedBox(height: 32),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 7, color: Colors.black87),
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

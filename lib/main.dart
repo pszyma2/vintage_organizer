@@ -148,7 +148,14 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
           },
         );
       case 1:
-        return MonthView(initialMonth: _selectedMonth);
+        return MonthView(
+          onDaySelected: (selectedDate) {
+            setState(() {
+              // Tu logika przeskoku do widoku dnia (wieczorem o tym gadaliśmy)
+              // Na razie zostawiamy pustą, byle błędu nie było
+            });
+          },
+        );
       case 2:
         return const WeeklyView();
       case 4:
