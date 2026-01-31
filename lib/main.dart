@@ -3,6 +3,7 @@ import 'calendar_view.dart';
 import 'notes_view.dart';
 import 'month_view.dart';
 import 'weekly_view.dart';
+import 'day_view.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() {
@@ -32,7 +33,7 @@ class MainOrganizerScreen extends StatefulWidget {
 class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
   bool _isOpened = false;
   int _activeTabIndex = 0;
-
+  DateTime _selectedDay = DateTime.now();
   // Te dwie zmienne trzymają informację, co wybraliśmy w widoku roku
   int _selectedMonth = 1;
   int _selectedYear = 2026;
@@ -137,7 +138,6 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
   Widget _buildMainContent() {
     switch (_activeTabIndex) {
       case 0:
-        // Poprawione: teraz przyjmuje miesiąc I rok z CalendarView
         return CalendarView(
           onMonthSelected: (monthNumber, yearNumber) {
             setState(() {
@@ -151,22 +151,30 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
         return MonthView(
           onDaySelected: (selectedDate) {
             setState(() {
-              // Tu logika przeskoku do widoku dnia (wieczorem o tym gadaliśmy)
-              // Na razie zostawiamy pustą, byle błędu nie było
+              _selectedDay = selectedDate; // Zapamiętujemy klikniętą datę
+              _activeTabIndex = 3; // Przełączamy na zakładkę DZIEŃ
             });
           },
         );
       case 2:
-        return const WeeklyView();
+        return WeeklyView(
+          // Przekazujemy aktualnie wybraną datę, żeby tydzień wiedział co wyświetlić
+          referenceDate: _selectedDay,
+          onDaySelected: (date) {
+            setState(() {
+              _selectedDay = date;
+              _activeTabIndex = 3; // Skok do widoku DNIA
+            });
+          },
+        );
+      case 3:
+        // Wyświetlamy naszą nową stronę dnia z wybraną datą
+        // Zmieniliśmy nazwę z 'date' na 'initialDate' w day_view.dart, żeby obsłużyć PageView
+        return DayView(initialDate: _selectedDay);
       case 4:
         return const NotesView();
       default:
-        return Center(
-          child: Text(
-            "WIDOK: $_activeTabIndex",
-            style: const TextStyle(color: Colors.brown, fontSize: 16),
-          ),
-        );
+        return const Center(child: Text("Błąd widoku"));
     }
   }
 
