@@ -15,7 +15,7 @@ class _ContactsViewState extends State<ContactsView> {
     {"name": "Bogdan Tiramisu", "phone": "987 654 321"},
     {"name": "Cezary Flutter", "phone": "555 666 777"},
     {"name": "Dariusz S-Pen", "phone": "111 222 333"},
-    {"name": "Ewa Google", "phone": "444 000 111"},
+    {"name": "Agnieszka Google", "phone": "444 000 111"},
     {"name": "Gemini Mistrz", "phone": "000 000 000"},
   ];
 
