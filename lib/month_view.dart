@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'global_data.dart'; // IMPORTUJEMY NASZĄ BAZĘ
 
 class MonthView extends StatefulWidget {
   final Function(DateTime) onDaySelected;
@@ -9,7 +10,6 @@ class MonthView extends StatefulWidget {
 }
 
 class _MonthViewState extends State<MonthView> {
-  // Naprawione przewijanie: 1200 to styczeń 2026. Możesz cofać o 100 lat!
   final int _initialPage = 1200;
   late PageController _monthController;
 
@@ -26,10 +26,9 @@ class _MonthViewState extends State<MonthView> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFFF2E2C9), // Nasz papier Vintage
+      color: const Color(0xFFF2E2C9),
       child: PageView.builder(
         controller: _monthController,
-        // Tu docelowo wjedzie nasz "Page Turn", teraz jest płynne Clamping
         physics: const ClampingScrollPhysics(parent: PageScrollPhysics()),
         itemBuilder: (context, index) {
           final monthDate = _getDateFromIndex(index);
@@ -69,7 +68,12 @@ class _MonthViewState extends State<MonthView> {
         ),
         const SizedBox(height: 15),
         _buildWeekdayHeader(),
-        Expanded(child: _buildDaysGrid(date)),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: _buildDaysGrid(date),
+          ),
+        ),
       ],
     );
   }
@@ -105,55 +109,59 @@ class _MonthViewState extends State<MonthView> {
     final totalSlots = startingEmptySlots + lastDay.day;
 
     return GridView.builder(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.only(top: 8, bottom: 20),
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        childAspectRatio: 0.6, // Wyższe kratki na notatki
-        mainAxisSpacing: 2,
-        crossAxisSpacing: 2,
+        childAspectRatio: 0.55,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
       ),
       itemCount: totalSlots,
       itemBuilder: (context, index) {
-        if (index < startingEmptySlots) {
-          return Container(); // Puste pole przed początkiem miesiąca
-        }
+        if (index < startingEmptySlots) return Container();
 
         final day = index - startingEmptySlots + 1;
         final currentDayDate = DateTime(date.year, date.month, day);
         bool isSunday = currentDayDate.weekday == 7;
 
+        // POBIERAMY NOTATKI DLA TEGO DNIA Z NASZEJ BAZY
+        final notesForDay = GlobalData.getNotesForDay(currentDayDate);
+
         return GestureDetector(
           onTap: () => widget.onDaySelected(currentDayDate),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withOpacity(0.2),
               border: Border.all(
-                color: Colors.brown.withOpacity(0.2),
+                color: Colors.brown.withOpacity(0.15),
                 width: 0.5,
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: Text(
-                    "$day",
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: isSunday ? Colors.red.shade900 : Colors.black87,
+            child: CustomPaint(
+              painter: LinePainter(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(3),
+                    child: Text(
+                      "$day",
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: isSunday
+                            ? Colors.red.shade900
+                            : Colors.brown.shade900,
+                      ),
                     ),
                   ),
-                ),
-                // PRZYKŁADOWE PASKI ZADAŃ (Tak jak w Google Calendar)
-                if (day == 10)
-                  _buildTaskBar("Lekarz 14:00", Colors.blue.shade100),
-                if (day == 15)
-                  _buildTaskBar("Praca 08:00", Colors.green.shade100),
-                if (day == 15) _buildTaskBar("Zakupy", Colors.orange.shade100),
-              ],
+                  // WYŚWIETLAMY MAŁE PASKI DLA KAŻDEJ NOTATKI (jeśli są)
+                  ...notesForDay.map(
+                    (note) => _buildHandwrittenMarker(note.content, note.color),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -161,20 +169,41 @@ class _MonthViewState extends State<MonthView> {
     );
   }
 
-  Widget _buildTaskBar(String text, Color color) {
+  Widget _buildHandwrittenMarker(String text, Color color) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 1, left: 1, right: 1),
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 2),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(2),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 7, color: Colors.black87),
+        style: const TextStyle(
+          fontSize: 8,
+          color: Colors.white,
+          fontStyle: FontStyle.italic,
+        ),
         overflow: TextOverflow.ellipsis,
       ),
     );
   }
+}
+
+class LinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.brown.withOpacity(0.08)
+      ..strokeWidth = 0.5;
+
+    double gap = size.height / 10;
+    for (int i = 1; i < 10; i++) {
+      canvas.drawLine(Offset(0, gap * i), Offset(size.width, gap * i), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

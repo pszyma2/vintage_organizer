@@ -1,120 +1,188 @@
 import 'package:flutter/material.dart';
+import 'global_data.dart';
 
-class WeeklyView extends StatefulWidget {
-  final Function(DateTime) onDaySelected;
+class WeeklyView extends StatelessWidget {
   final DateTime referenceDate;
+  final Function(DateTime) onDaySelected;
 
   const WeeklyView({
     super.key,
-    required this.onDaySelected,
     required this.referenceDate,
+    required this.onDaySelected,
   });
 
   @override
-  State<WeeklyView> createState() => _WeeklyViewState();
-}
-
-class _WeeklyViewState extends State<WeeklyView> {
-  late PageController _weekController;
-  final int _initialPage = 1000; // Środek, żeby można było cofać lata
-
-  @override
-  void initState() {
-    super.initState();
-    _weekController = PageController(initialPage: _initialPage);
-  }
-
-  // Ta magia oblicza datę dla konkretnej strony (przeskok o 7 dni)
-  DateTime _getStartDateForPage(int page) {
-    int offset = (page - _initialPage) * 7;
-    return widget.referenceDate.add(
-      Duration(days: offset - (widget.referenceDate.weekday - 1)),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: _weekController,
-      itemBuilder: (context, index) {
-        final monday = _getStartDateForPage(index);
-        return _buildWeekPage(monday);
-      },
+    DateTime monday = referenceDate.subtract(
+      Duration(days: referenceDate.weekday - 1),
+    );
+
+    return Container(
+      color: const Color(0xFFF2E2C9),
+      child: Column(
+        children: [
+          const SizedBox(height: 30),
+          Text(
+            "TYDZIEŃ ${monday.day}.${monday.month} - ${monday.add(const Duration(days: 6)).day}.${monday.add(const Duration(days: 6)).month}.${monday.year}",
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF3E2723),
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          Expanded(
+            child: Row(
+              children: [
+                // LEWA KOLUMNA: 3 RÓWNE CZĘŚCI (PON, WT, ŚR)
+                Expanded(
+                  child: Column(
+                    children: [
+                      _buildDayCell(monday.add(const Duration(days: 0))),
+                      _buildDayCell(monday.add(const Duration(days: 1))),
+                      _buildDayCell(monday.add(const Duration(days: 2))),
+                    ],
+                  ),
+                ),
+
+                // LINIA ŚRODKOWA
+                Container(width: 1, color: Colors.brown.withOpacity(0.15)),
+
+                // PRAWA KOLUMNA: 3 RÓWNE CZĘŚCI (CZW, PT, WEEKEND)
+                Expanded(
+                  child: Column(
+                    children: [
+                      _buildDayCell(monday.add(const Duration(days: 3))),
+                      _buildDayCell(monday.add(const Duration(days: 4))),
+                      // SZÓSTY KAWAŁEK: SOBOTA I NIEDZIELA RAZEM
+                      Expanded(
+                        child: Column(
+                          children: [
+                            _buildWeekendHalf(
+                              monday.add(const Duration(days: 5)),
+                            ),
+                            Container(
+                              height: 1,
+                              color: Colors.brown.withOpacity(0.1),
+                            ),
+                            _buildWeekendHalf(
+                              monday.add(const Duration(days: 6)),
+                              isLast: true,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildWeekPage(DateTime monday) {
-    final sunday = monday.add(const Duration(days: 6));
+  // GŁÓWNY BOKS DNIA (PON-PT)
+  Widget _buildDayCell(DateTime date) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onDaySelected(date),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: Colors.brown.withOpacity(0.15),
+                width: 1,
+              ),
+            ),
+          ),
+          child: _buildDayContent(date),
+        ),
+      ),
+    );
+  }
 
-    return Column(
+  // POŁÓWKA DLA SOBOTY I NIEDZIELI
+  Widget _buildWeekendHalf(DateTime date, {bool isLast = false}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onDaySelected(date),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: isLast
+                  ? BorderSide.none
+                  : BorderSide(
+                      color: Colors.brown.withOpacity(0.1),
+                      width: 0.5,
+                    ),
+            ),
+          ),
+          child: _buildDayContent(date, isSmall: true),
+        ),
+      ),
+    );
+  }
+
+  // WSPÓLNY RYSUNEK LINII I TEKSTU
+  Widget _buildDayContent(DateTime date, {bool isSmall = false}) {
+    final notes = GlobalData.getNotesForDay(date);
+    bool isSunday = date.weekday == 7;
+
+    return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15),
-          child: Text(
-            // Dodaliśmy rok na końcu:
-            "TYDZIEN ${monday.day}.${monday.month.toString().padLeft(2, '0')} - ${sunday.day}.${sunday.month.toString().padLeft(2, '0')}.${monday.year}",
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              letterSpacing:
-                  2, // Trochę zmniejszyłem, żeby rok się ładnie zmieścił
-              color: Color(0xFF5D4037),
+        // Liniatura
+        Column(
+          children: List.generate(
+            isSmall ? 2 : 4,
+            (index) => Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(
+                      color: Colors.brown.withOpacity(0.04),
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         ),
-        Expanded(
-          child: Row(
+        // Tekst
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // LEWA KOLUMNA: Pn, Wt, Śr
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildDayBlock("PONIEDZIAŁEK", monday),
-                    _buildDayBlock(
-                      "WTOREK",
-                      monday.add(const Duration(days: 1)),
-                    ),
-                    _buildDayBlock(
-                      "ŚRODA",
-                      monday.add(const Duration(days: 2)),
-                      isLast: true,
-                    ),
-                  ],
+              Text(
+                "${_getWeekdayName(date.weekday)} ${date.day}.${date.month}"
+                    .toUpperCase(),
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: isSunday ? Colors.red.shade900 : Colors.brown.shade700,
                 ),
               ),
-              Container(width: 1, color: const Color(0xFF5D4037).withAlpha(40)),
-              // PRAWA KOLUMNA: Cz, Pt, Weekend
-              Expanded(
-                child: Column(
-                  children: [
-                    _buildDayBlock(
-                      "CZWARTEK",
-                      monday.add(const Duration(days: 3)),
-                    ),
-                    _buildDayBlock(
-                      "PIĄTEK",
-                      monday.add(const Duration(days: 4)),
-                    ),
-                    Expanded(
-                      child: Column(
-                        children: [
-                          _buildDayBlock(
-                            "SOBOTA",
-                            monday.add(const Duration(days: 5)),
-                            isWeekend: true,
-                          ),
-                          _buildDayBlock(
-                            "NIEDZIELA",
-                            monday.add(const Duration(days: 6)),
-                            isWeekend: true,
-                            isLast: true,
-                          ),
-                        ],
+              const SizedBox(height: 2),
+              ...notes
+                  .take(isSmall ? 1 : 2)
+                  .map(
+                    (n) => Text(
+                      "• ${n.content}",
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.black87,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
-              ),
+                  ),
             ],
           ),
         ),
@@ -122,64 +190,16 @@ class _WeeklyViewState extends State<WeeklyView> {
     );
   }
 
-  Widget _buildDayBlock(
-    String name,
-    DateTime date, {
-    bool isLast = false,
-    bool isWeekend = false,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => widget.onDaySelected(date),
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            border: Border(
-              bottom: isLast
-                  ? BorderSide.none
-                  : BorderSide(color: const Color(0xFF5D4037).withAlpha(30)),
-            ),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "$name ${date.day}.${date.month}",
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: name == "NIEDZIELA"
-                      ? Colors.red.shade700
-                      : const Color(0xFF5D4037),
-                ),
-              ),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    int lineCount = (constraints.maxHeight / 25).floor();
-                    return ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: lineCount,
-                      itemBuilder: (context, index) => Container(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: const Color(0xFF5D4037).withAlpha(15),
-                            ),
-                          ),
-                        ),
-                        height: 25,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  String _getWeekdayName(int day) {
+    const names = [
+      "Poniedziałek",
+      "Wtorek",
+      "Środa",
+      "Czwartek",
+      "Piątek",
+      "Sobota",
+      "Niedziela",
+    ];
+    return names[day - 1];
   }
 }

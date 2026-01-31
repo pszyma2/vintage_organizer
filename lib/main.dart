@@ -5,9 +5,17 @@ import 'month_view.dart';
 import 'weekly_view.dart';
 import 'day_view.dart';
 import 'contacts_view.dart';
+import 'global_data.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-void main() {
+void main() async {
+  // 1. To mówi Flutterowi: "Czekaj, musimy coś przygotować przed startem"
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. Ładujemy Twoje zapisane notatki z pamięci telefonu
+  await GlobalData.loadFromDisk();
+
+  // 3. Odpalamy formatowanie daty i całą resztę
   initializeDateFormatting('pl_PL', null).then((_) {
     runApp(const VintageOrganizerApp());
   });
