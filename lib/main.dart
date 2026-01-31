@@ -4,6 +4,7 @@ import 'notes_view.dart';
 import 'month_view.dart';
 import 'weekly_view.dart';
 import 'day_view.dart';
+import 'contacts_view.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 void main() {
@@ -85,7 +86,8 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
               _buildPhysicalTab("MIES", 1),
               _buildPhysicalTab("TYDZ", 2),
               _buildPhysicalTab("DZIEŃ", 3),
-              _buildPhysicalTab("NOTY", 4),
+              _buildPhysicalTab("ADR", 4), // Nowy ząbek dla Adresownika
+              _buildPhysicalTab("NOTY", 5), // Notatki spadają na dół
               const Spacer(),
               IconButton(
                 onPressed: () => setState(() => _isOpened = false),
@@ -172,6 +174,8 @@ class _MainOrganizerScreenState extends State<MainOrganizerScreen> {
         // Zmieniliśmy nazwę z 'date' na 'initialDate' w day_view.dart, żeby obsłużyć PageView
         return DayView(initialDate: _selectedDay);
       case 4:
+        return ContactsView(); // USUNIĘTO 'const' - to naprawi błąd ze zdjęcia
+      case 5:
         return const NotesView();
       default:
         return const Center(child: Text("Błąd widoku"));
